@@ -9,6 +9,8 @@ import (
 
 	"github.com/dosedetelemetria/projeto-otel-na-pratica/internal/pkg/model"
 	"github.com/dosedetelemetria/projeto-otel-na-pratica/internal/pkg/store"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // SubscriptionHandler is an HTTP handler that performs CRUD operations for model.Subscription using a store.Subscription
@@ -16,18 +18,26 @@ type SubscriptionHandler struct {
 	store         store.Subscription
 	usersEndpoint string
 	plansEndpoint string
+	tracer        trace.Tracer
 }
 
 // NewSubscriptionHandler returns a new SubscriptionHandler
 func NewSubscriptionHandler(store store.Subscription, usersEndpoint string, plansEndpoint string) *SubscriptionHandler {
+	tracer := otel.Tracer("subscription handler")
 	return &SubscriptionHandler{
 		store:         store,
 		usersEndpoint: usersEndpoint,
 		plansEndpoint: plansEndpoint,
+		tracer:        tracer,
 	}
 }
 
 func (h *SubscriptionHandler) List(w http.ResponseWriter, r *http.Request) {
+	_, span := h.tracer.Start(r.Context(), "SubscriptionHandler.List")
+	defer span.End()
+	span.SetAttributes()
+	span.AddEvent("List subscriptions")
+
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -47,6 +57,11 @@ func (h *SubscriptionHandler) List(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *SubscriptionHandler) Create(w http.ResponseWriter, r *http.Request) {
+	_, span := h.tracer.Start(r.Context(), "SubscriptionHandler.Create")
+	defer span.End()
+	span.SetAttributes()
+	span.AddEvent("Create subscriptions")
+
 	subscription := &model.Subscription{}
 	if err := json.NewDecoder(r.Body).Decode(subscription); err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
@@ -87,6 +102,11 @@ func (h *SubscriptionHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *SubscriptionHandler) Get(w http.ResponseWriter, r *http.Request) {
+	_, span := h.tracer.Start(r.Context(), "SubscriptionHandler.Get")
+	defer span.End()
+	span.SetAttributes()
+	span.AddEvent("Get subscriptions")
+
 	id := r.PathValue("id")
 	subscription, err := h.store.Get(r.Context(), id)
 	if err != nil {
@@ -107,6 +127,11 @@ func (h *SubscriptionHandler) Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *SubscriptionHandler) Update(w http.ResponseWriter, r *http.Request) {
+	_, span := h.tracer.Start(r.Context(), "SubscriptionHandler.Update")
+	defer span.End()
+	span.SetAttributes()
+	span.AddEvent("Update subscriptions")
+
 	subscription := &model.Subscription{}
 	if err := json.NewDecoder(r.Body).Decode(subscription); err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
@@ -127,6 +152,11 @@ func (h *SubscriptionHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *SubscriptionHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	_, span := h.tracer.Start(r.Context(), "SubscriptionHandler.Delete")
+	defer span.End()
+	span.SetAttributes()
+	span.AddEvent("Delete subscriptions")
+
 	id := r.PathValue("id")
 	err := h.store.Delete(r.Context(), id)
 	if err != nil {

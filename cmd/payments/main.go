@@ -4,18 +4,24 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"net/http"
 
 	"github.com/dosedetelemetria/projeto-otel-na-pratica/internal/app"
 	"github.com/dosedetelemetria/projeto-otel-na-pratica/internal/config"
+	"github.com/dosedetelemetria/projeto-otel-na-pratica/internal/pkg/telemetry"
 )
 
 func main() {
 	configFlag := flag.String("config", "", "path to the config file")
 	flag.Parse()
 
+	// init trace
+	telemetry.InitTelemetry(context.Background())
+
 	c, _ := config.LoadConfig(*configFlag)
+
 	a, _ := app.NewPayment(&c.Payments)
 	a.RegisterRoutes(http.DefaultServeMux)
 	_ = http.ListenAndServe(c.Server.Endpoint.HTTP, http.DefaultServeMux)

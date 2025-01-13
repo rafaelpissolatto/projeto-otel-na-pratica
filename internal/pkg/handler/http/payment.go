@@ -6,12 +6,16 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/dosedetelemetria/projeto-otel-na-pratica/internal/pkg/model"
 	"github.com/dosedetelemetria/projeto-otel-na-pratica/internal/pkg/store"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // PaymentHandler is an HTTP handler that performs CRUD operations for model.Payment using a store.Payment
@@ -20,33 +24,50 @@ type PaymentHandler struct {
 	js                    jetstream.JetStream
 	jsSubject             string
 	subscriptionsEndpoint string
+	tracer                trace.Tracer
 }
 
 // NewPaymentHandler returns a new PaymentHandler
 func NewPaymentHandler(store store.Payment, js jetstream.JetStream, jsSubject string, subscriptionsEndpoint string) *PaymentHandler {
+	tracer := otel.Tracer("payment handler")
 	return &PaymentHandler{
 		store:                 store,
 		js:                    js,
 		jsSubject:             jsSubject,
 		subscriptionsEndpoint: subscriptionsEndpoint,
+		tracer:                tracer,
 	}
 }
 
 func (h *PaymentHandler) List(w http.ResponseWriter, r *http.Request) {
+	_, span := h.tracer.Start(r.Context(), "PaymentHandler.List")
+	defer span.End()
+	span.SetAttributes()
+	span.AddEvent("List payments")
+
 	payments, err := h.store.List(r.Context())
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	err = json.NewEncoder(w).Encode(payments)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
 
 func (h *PaymentHandler) Create(w http.ResponseWriter, r *http.Request) {
+	_, span := h.tracer.Start(r.Context(), "PaymentHandler.Create")
+	defer span.End()
+	span.SetAttributes()
+	span.AddEvent("Create payments")
+
 	var payment model.Payment
 	if err := json.NewDecoder(r.Body).Decode(&payment); err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
@@ -85,26 +106,44 @@ func (h *PaymentHandler) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *PaymentHandler) Get(w http.ResponseWriter, r *http.Request) {
+	_, span := h.tracer.Start(r.Context(), "PaymentHandler.Get")
+	defer span.End()
+	span.SetAttributes()
+	span.AddEvent("Get payments")
+
 	id := r.PathValue("id")
 	payment, err := h.store.Get(r.Context(), id)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		span.End()
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	if payment == nil {
-		http.Error(w, "Payment not found", http.StatusNotFound)
+		err := errors.New("payment not found")
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
 	err = json.NewEncoder(w).Encode(payment)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 }
 
 func (h *PaymentHandler) Update(w http.ResponseWriter, r *http.Request) {
+	_, span := h.tracer.Start(r.Context(), "PaymentHandler.Update")
+	defer span.End()
+	span.SetAttributes()
+	span.AddEvent("Update payments")
+
 	payment := &model.Payment{}
 	if err := json.NewDecoder(r.Body).Decode(payment); err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
@@ -125,6 +164,11 @@ func (h *PaymentHandler) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *PaymentHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	_, span := h.tracer.Start(r.Context(), "PaymentHandler.Delete")
+	defer span.End()
+	span.SetAttributes()
+	span.AddEvent("Delete payments")
+
 	id := r.PathValue("id")
 	err := h.store.Delete(r.Context(), id)
 	if err != nil {
@@ -133,7 +177,12 @@ func (h *PaymentHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *PaymentHandler) OnMessage(msg jetstream.Msg) {
+func (h *PaymentHandler) OnMessage(ctx context.Context, msg jetstream.Msg) {
+	_, span := h.tracer.Start(ctx, "PaymentHandler.OnMessage")
+	defer span.End()
+	span.SetAttributes()
+	span.AddEvent("OnMessage payments")
+
 	payment := &model.Payment{}
 	err := json.Unmarshal(msg.Data(), payment)
 	if err != nil {

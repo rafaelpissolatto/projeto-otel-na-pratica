@@ -4,18 +4,23 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"net"
 	"net/http"
 
 	"github.com/dosedetelemetria/projeto-otel-na-pratica/internal/app"
 	"github.com/dosedetelemetria/projeto-otel-na-pratica/internal/config"
+	"github.com/dosedetelemetria/projeto-otel-na-pratica/internal/pkg/telemetry"
 	"google.golang.org/grpc"
 )
 
 func main() {
 	configFlag := flag.String("config", "", "path to the config file")
 	flag.Parse()
+
+	// init trace
+	telemetry.InitTelemetry(context.Background())
 
 	c, _ := config.LoadConfig(*configFlag)
 

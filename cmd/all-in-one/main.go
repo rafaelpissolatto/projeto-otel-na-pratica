@@ -4,18 +4,29 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"net"
 	"net/http"
 
 	"github.com/dosedetelemetria/projeto-otel-na-pratica/internal/app"
 	"github.com/dosedetelemetria/projeto-otel-na-pratica/internal/config"
+	"github.com/dosedetelemetria/projeto-otel-na-pratica/internal/pkg/telemetry"
 	"google.golang.org/grpc"
 )
 
 func main() {
 	configFlag := flag.String("config", "", "path to the config file")
 	flag.Parse()
+	ctx := context.Background()
+
+	// init telemetry
+	telemetry.InitTelemetry(ctx)
+	telemetry.InitMetrics(ctx)
+	telemetry.InitLogs(ctx)
+
+	// Retrieve Logger
+	logger := telemetry.GetLogger()
 
 	c, _ := config.LoadConfig(*configFlag)
 
@@ -56,5 +67,7 @@ func main() {
 		_ = grpcServer.Serve(lis)
 	}()
 
+	// slog.Info("starting server", "endpoint", c.Server.Endpoint.HTTP)
+	logger.Info("starting server", "endpoint", c.Server.Endpoint.HTTP)
 	_ = http.ListenAndServe(c.Server.Endpoint.HTTP, mux)
 }
