@@ -1,0 +1,43 @@
+file_format: "0.3"
+disabled: false
+resource:
+  schema_url: https://opentelemetry.io/schemas/1.26.0
+  attributes:
+    - name: service.name
+      value: otel-na-pratica
+    - name: service.version
+      value: "0.0.1"
+    - name: environment
+      value: development
+    - name: distribution
+      value: all-in-one
+propagator:
+  composite:
+    - tracecontext
+    - baggage
+trace_provider:
+  processors:
+    - console:
+        log_level: debug
+    - batch:
+        exporter:
+          otlp:
+            protocol: http/protobuf
+            endpoint: http://localhost:4318
+
+metric_provider:
+  readers:
+    - periodic:
+        internal: 1000
+        exporter:
+          otlp:
+            protocol: http/protobuf
+            endpoint: http://localhost:4318
+
+logger_provider:
+  processors:
+    - batch:
+        exporter:
+          otlp:
+            protocol: http/protobuf
+            endpoint: http://localhost:4318

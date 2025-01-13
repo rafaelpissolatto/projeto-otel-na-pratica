@@ -10,21 +10,30 @@ import (
 	"github.com/dosedetelemetria/projeto-otel-na-pratica/api"
 	"github.com/dosedetelemetria/projeto-otel-na-pratica/internal/pkg/model"
 	"github.com/dosedetelemetria/projeto-otel-na-pratica/internal/pkg/store"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type planServer struct {
 	api.UnimplementedPlanServiceServer
-
-	store store.Plan
+	store  store.Plan
+	tracer trace.Tracer
 }
 
 func NewPlanServer(store store.Plan) api.PlanServiceServer {
+	tracer := otel.Tracer("plan server")
 	return &planServer{
-		store: store,
+		store:  store,
+		tracer: tracer,
 	}
 }
 
 func (s *planServer) Get(ctx context.Context, req *api.GetRequest) (*api.GetResponse, error) {
+	_, span := s.tracer.Start(ctx, "PlanServer.Get")
+	defer span.End()
+	span.SetAttributes()
+	span.AddEvent("Get planServer")
+
 	plan, err := s.store.Get(ctx, req.Id)
 	if err != nil {
 		return nil, err
@@ -46,6 +55,11 @@ func (s *planServer) Get(ctx context.Context, req *api.GetRequest) (*api.GetResp
 }
 
 func (s *planServer) Create(ctx context.Context, req *api.CreateRequest) (*api.CreateResponse, error) {
+	_, span := s.tracer.Start(ctx, "PlanServer.Create")
+	defer span.End()
+	span.SetAttributes()
+	span.AddEvent("Create planServer")
+
 	plan, err := s.store.Create(ctx, &model.Plan{
 		ID:          req.Plan.Id,
 		Name:        req.Plan.Name,
@@ -74,6 +88,11 @@ func (s *planServer) Create(ctx context.Context, req *api.CreateRequest) (*api.C
 }
 
 func (s *planServer) Update(ctx context.Context, req *api.UpdateRequest) (*api.UpdateResponse, error) {
+	_, span := s.tracer.Start(ctx, "PlanServer.Update")
+	defer span.End()
+	span.SetAttributes()
+	span.AddEvent("Update planServer")
+
 	plan, err := s.store.Update(ctx, &model.Plan{
 		ID:          req.Plan.Id,
 		Name:        req.Plan.Name,
@@ -101,6 +120,11 @@ func (s *planServer) Update(ctx context.Context, req *api.UpdateRequest) (*api.U
 }
 
 func (s *planServer) Delete(ctx context.Context, req *api.DeleteRequest) (*api.DeleteResponse, error) {
+	_, span := s.tracer.Start(ctx, "PlanServer.Delete")
+	defer span.End()
+	span.SetAttributes()
+	span.AddEvent("Delete planServer")
+
 	err := s.store.Delete(ctx, req.Id)
 	if err != nil {
 		return nil, err
@@ -109,6 +133,11 @@ func (s *planServer) Delete(ctx context.Context, req *api.DeleteRequest) (*api.D
 }
 
 func (s *planServer) List(ctx context.Context, req *api.ListRequest) (*api.ListResponse, error) {
+	_, span := s.tracer.Start(ctx, "PlanServer.List")
+	defer span.End()
+	span.SetAttributes()
+	span.AddEvent("List planServer")
+
 	plans, err := s.store.List(ctx)
 	if err != nil {
 		return nil, err

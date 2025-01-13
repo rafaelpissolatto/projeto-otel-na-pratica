@@ -14,7 +14,7 @@ type inMemoryUser struct {
 	store map[string]*model.User
 }
 
-func NewUserStore() store.User {
+func NewUserStore(ctx context.Context) store.User {
 	return &inMemoryUser{
 		store: make(map[string]*model.User),
 	}
